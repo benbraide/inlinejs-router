@@ -1,5 +1,5 @@
 import { ISplitPath } from "@benbraide/inlinejs";
-import { IRouterPageName, IRouterConcept, IRouterMiddleware, IRouterPage, IRouterPageOptions, IRouterFetcher, RouterProtocolHandlerType, IRouterFetcherSearchResponse, RouterDataHandlerType } from "./types";
+import { IRouterPageName, IRouterConcept, IRouterMiddleware, IRouterPage, IRouterPageOptions, IRouterFetcher, RouterProtocolHandlerType, IRouterFetcherSearchResponse, RouterDataHandlerType, RouterPathChangeHandlerType } from "./types";
 export declare class RouterConcept implements IRouterConcept {
     private prefix_;
     private origin_;
@@ -11,10 +11,13 @@ export declare class RouterConcept implements IRouterConcept {
     private fetchers_;
     private protocolHandlers_;
     private dataHandlers_;
+    private pathChangeHandlers_;
     private pages_;
     private current_;
     constructor(prefix_?: string, origin_?: string);
+    GetOrigin(): string;
     SetPrefix(prefix: string): void;
+    GetPrefix(): string;
     AddMiddleware(middleware: IRouterMiddleware): void;
     RemoveMiddleware(middleware: IRouterMiddleware | string): void;
     AddFetcher(fetcher: IRouterFetcher): void;
@@ -24,6 +27,8 @@ export declare class RouterConcept implements IRouterConcept {
     RemoveProtocolHandler(handler: RouterProtocolHandlerType): void;
     AddDataHandler(handler: RouterDataHandlerType): void;
     RemoveDataHandler(handler: RouterDataHandlerType): void;
+    AddPathChangeHandler(handler: RouterPathChangeHandlerType): void;
+    RemovePathChangeHandler(handler: RouterPathChangeHandlerType): void;
     AddPage({ path, ...rest }: IRouterPageOptions): string;
     RemovePage(page: string | IRouterPageName): {
         id: string;

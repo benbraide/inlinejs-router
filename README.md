@@ -188,6 +188,10 @@ Available magic properties:
 ```html
 <template x-router:mount="modal"></template>
 ```
+- Specifying a different DOM element as mount point:
+```html
+<template x-router:mount.evaluate="document.querySelector('#router-mount')"></template>
+```
 
 ### `link`
 
@@ -216,6 +220,8 @@ Available magic properties:
 ```html
 <a href="/about" x-router:link="console.log('Active state:', $active)"></a>
 ```
+
+> **Note:** `x-router:link` exposes a `$active` context property when evaluating the specified expression.
 
 ### Magic Properties
 ---

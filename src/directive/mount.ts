@@ -43,18 +43,26 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
     });
 
     let bind = (protocol: any) => {
-        if (protocol && typeof protocol !== 'string' && !(protocol instanceof RegExp)){
+        if (protocol && typeof protocol !== 'string' && !(protocol instanceof RegExp) && !(protocol instanceof HTMLElement)){
             return JournalError('Target protocol is invalid.', `${RouterConceptName}:${argKey}`, contextElement);
         }
 
-        let mountElement = document.createElement(options.main ? 'main' : (options.section ? 'section' : 'div'));
+        let mountElement: HTMLElement;
+        if (protocol instanceof HTMLElement){//Mount target specified
+            mountElement = protocol;
+            protocol = null;
+        }
+        else{//Create mount
+            mountElement = document.createElement(options.main ? 'main' : (options.section ? 'section' : 'div'));
+        }
+        
         if (!mountElement){
             return JournalError('Mount target is invalid.', `${RouterConceptName}:${argKey}`, contextElement);
         }
 
         let onUninit: (() => void) | null = null;
-        if (!mountElement.parentElement){//Add to DOM
-            contextElement.parentElement!.insertBefore(mountElement, contextElement);
+        if (contextElement.parentElement && !mountElement.parentElement){//Add to DOM
+            contextElement.parentElement.insertBefore(mountElement, contextElement);
             onUninit = () => mountElement!.remove();
         }
 
@@ -85,6 +93,10 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
         let checkpoint = 0;
         let protocolHandler = ({ path }: IRouterProtocolHandlerParams) => {
             contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.entered`));
+            if (path === savedPath && !options.reload){//Skip
+                contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.reload`));
+                return true;
+            }
 
             let myCheckpoint = ++checkpoint, dataHandler = (data: string, splitPath: ISplitPath) => ((myCheckpoint == checkpoint) && handleData({ data, path: splitPath, url: path }));
             if (options.prepend){//Prepend protocol string

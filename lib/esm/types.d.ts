@@ -57,8 +57,11 @@ export interface IRouterDataHandlerParams {
     url: string;
 }
 export declare type RouterDataHandlerType = (params: IRouterDataHandlerParams) => void;
+export declare type RouterPathChangeHandlerType = (path: string) => void;
 export interface IRouterConcept {
+    GetOrigin(): string;
     SetPrefix(prefix: string): void;
+    GetPrefix(): string;
     AddMiddleware(middleware: IRouterMiddleware): void;
     RemoveMiddleware(middleware: IRouterMiddleware | string): void;
     AddFetcher(fetcher: IRouterFetcher): void;
@@ -68,6 +71,8 @@ export interface IRouterConcept {
     RemoveProtocolHandler(handler: RouterProtocolHandlerType): void;
     AddDataHandler(handler: RouterDataHandlerType): void;
     RemoveDataHandler(handler: RouterDataHandlerType): void;
+    AddPathChangeHandler(handler: RouterPathChangeHandlerType): void;
+    RemovePathChangeHandler(handler: RouterPathChangeHandlerType): void;
     AddPage(options: IRouterPageOptions): string;
     RemovePage(page: string | IRouterPageName): void;
     FindPage(page: string | IRouterPageName): IRouterPage | null;

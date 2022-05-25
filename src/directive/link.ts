@@ -5,6 +5,7 @@ import {
     FindComponentById,
     GetGlobal,
     JournalError,
+    PathToRelative,
     ResolveOptions,
     TidyPath
 } from "@benbraide/inlinejs";
@@ -44,18 +45,23 @@ export const LinkRouterDirectiveExtension = CreateDirectiveHandlerCallback('link
         GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.Goto(getPath(), options.reload);
     };
 
+    let getOrigin = () => (GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.GetOrigin() || window.location.origin);
+    let isMatchingPath = (path: string) => (TidyPath(path) === TidyPath(PathToRelative(getPath(), getOrigin())));
+
     contextElement.addEventListener(getEvent(), onEvent);
     if (expression = expression.trim()){//Listen for data loads
-        let evaluate = EvaluateLater({ componentId, contextElement, expression }), isActive = false, dataSniffer = ({ path }: IRouterDataHandlerParams) => {
-            if (isActive != (TidyPath(path.base) === TidyPath(getPath()))){
+        let evaluate = EvaluateLater({ componentId, contextElement, expression }), isActive = false, pathMonitor = (path: string) => {
+            if (isActive != isMatchingPath(path)){
                 evaluate(undefined, undefined, { active: (isActive = !isActive) });
             }
         };
 
-        GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.AddDataHandler(dataSniffer);
+        GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.AddPathChangeHandler(pathMonitor);
         (component || FindComponentById(componentId))?.FindElementScope(contextElement)?.AddUninitCallback(() => {
-            GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.RemoveDataHandler(dataSniffer);
+            GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.RemovePathChangeHandler(pathMonitor);
         });
+
+        pathMonitor(GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.GetCurrentPath() || '');
     }
 });
 

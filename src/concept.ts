@@ -16,7 +16,7 @@ import {
 } from "@benbraide/inlinejs";
 
 import { RouterConceptName, ResourceConceptName } from "./names";
-import { IRouterPageName, IRouterConcept, IRouterMiddleware, IRouterPage, IRouterPageOptions, IRouterFetcher, RouterProtocolHandlerType, RouterProtocolDataHandlerType, IRouterFetcherOptimized, IRouterFetcherPlaceholder, IRouterFetcherSearchResponse, RouterDataHandlerType, ValidRouterProtocolHandlerResponseType, IRouterProtocolModifyResponse } from "./types";
+import { IRouterPageName, IRouterConcept, IRouterMiddleware, IRouterPage, IRouterPageOptions, IRouterFetcher, RouterProtocolHandlerType, RouterProtocolDataHandlerType, IRouterFetcherOptimized, IRouterFetcherPlaceholder, IRouterFetcherSearchResponse, RouterDataHandlerType, ValidRouterProtocolHandlerResponseType, IRouterProtocolModifyResponse, RouterPathChangeHandlerType } from "./types";
 import { MatchPath, ProcessPathPlaceholders } from "./utilities/path";
 
 interface IRouterProtocolHandlerInfo{
@@ -35,6 +35,7 @@ export class RouterConcept implements IRouterConcept{
     private fetchers_ = new Array<IRouterFetcherOptimized>();
     private protocolHandlers_ = new Array<IRouterProtocolHandlerInfo>();
     private dataHandlers_ = new Array<RouterDataHandlerType>();
+    private pathChangeHandlers_ = new Array<RouterPathChangeHandlerType>();
     private pages_: Record<string, IRouterPage> = {};
 
     private current_ = {
@@ -56,9 +57,17 @@ export class RouterConcept implements IRouterConcept{
             }
         };
     }
+
+    public GetOrigin(){
+        return this.origin_;
+    }
     
     public SetPrefix(prefix: string){
         this.prefix_ = prefix;
+    }
+
+    public GetPrefix(){
+        return this.prefix_;
     }
     
     public AddMiddleware(middleware: IRouterMiddleware){
@@ -101,6 +110,14 @@ export class RouterConcept implements IRouterConcept{
     public RemoveDataHandler(handler: RouterDataHandlerType){
         this.dataHandlers_ = this.dataHandlers_.filter(h => (h !== handler));
     }
+
+    public AddPathChangeHandler(handler: RouterPathChangeHandlerType){
+        this.pathChangeHandlers_.push(handler);
+    }
+
+    public RemovePathChangeHandler(handler: RouterPathChangeHandlerType){
+        this.pathChangeHandlers_ = this.pathChangeHandlers_.filter(h => (h !== handler));
+    }
     
     public AddPage({ path, ...rest }: IRouterPageOptions){
         let id = GenerateUniqueId(this.markers_, 'router', 'page_');
@@ -131,6 +148,7 @@ export class RouterConcept implements IRouterConcept{
         if (!load){
             this.current_.path = path;
             this.current_.page = this.FindMatchingPage(split.base);
+            this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(path), 'InlineJS.RouterConcept.Mount'));
         }
         else{
             this.Load_(split, false);
@@ -219,6 +237,10 @@ export class RouterConcept implements IRouterConcept{
             }
             else{//Reset
                 this.current_.initialData = this.current_.data = null;
+            }
+
+            if (!samePath){
+                this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(joined), 'InlineJS.RouterConcept.Load'));
             }
         }
 
