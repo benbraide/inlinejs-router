@@ -41,9 +41,8 @@ export const FetchRouterDirectiveExtension = CreateDirectiveHandlerCallback('fet
             let handler = ({ params }: IRouterFetcherHandlerParams) => {
                 let data: string;
                 if (Object.keys(params).length != 0){//Perform interpolation
-                    data = contextElement.innerHTML.replace(/\{\{\s*(.+?)\s*\}\}/g, (match, capture) => {//Supports {{ key || alternate }}
-                        let parts = (capture as string).split('||').map(part => part.trim()).filter(part => !!part);
-                        return ((parts.length != 0 && params.hasOwnProperty(parts[0])) ? params[parts[0]] : ((parts.length > 1) ? parts[1] : match));
+                    data = contextElement.innerHTML.replace(/\{\:\s*(.+?)\s*\:\}/g, (match, capture) => {//Supports {: [Expression] :}
+                        return ToString(EvaluateLater({ componentId, contextElement, expression: capture })(undefined, [params], { params }));
                     });
                 }
                 else{

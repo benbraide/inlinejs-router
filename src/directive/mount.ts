@@ -9,11 +9,17 @@ import {
     JournalError,
     ResolveOptions,
     ForwardEvent,
-    ISplitPath
+    ISplitPath,
+    IsObject
 } from "@benbraide/inlinejs";
 
 import { RouterConceptName } from "../names";
 import { IRouterConcept, IRouterDataHandlerParams, IRouterProtocolHandlerParams } from "../types";
+
+interface IRouterMountOptions{
+    protocol?: string;
+    target?: HTMLElement;
+}
 
 export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mount', ({ componentId, contextElement, expression, argKey, argOptions }) => {
     if (!(contextElement instanceof HTMLTemplateElement)){
@@ -43,16 +49,21 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
     });
 
     let bind = (protocol: any) => {
-        if (protocol && typeof protocol !== 'string' && !(protocol instanceof RegExp) && !(protocol instanceof HTMLElement)){
+        if (protocol && typeof protocol !== 'string' && !(protocol instanceof RegExp) && !(protocol instanceof HTMLElement) && !IsObject(protocol)){
             return JournalError('Target protocol is invalid.', `${RouterConceptName}:${argKey}`, contextElement);
         }
 
-        let mountElement: HTMLElement;
+        let mountElement: HTMLElement | null = null;
         if (protocol instanceof HTMLElement){//Mount target specified
             mountElement = protocol;
             protocol = null;
         }
-        else{//Create mount
+        else if (IsObject(protocol)){
+            mountElement = ((protocol as IRouterMountOptions).target || null);
+            protocol = ((protocol as IRouterMountOptions).protocol || null);
+        }
+        
+        if (!mountElement){//Create mount
             mountElement = document.createElement(options.main ? 'main' : (options.section ? 'section' : 'div'));
         }
         

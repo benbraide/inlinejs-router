@@ -142,19 +142,19 @@ Available magic properties:
 - Using the `innerHtml` content as data with placeholders:
 ```html
 <template x-router:fetch="/users/:id">
-    <p>Specified user has an ID of {{ id }}.</p>
+    <p>Specified user has an ID of {: $params.id :}.</p>
 </template>
 ```
 - Using the `innerHtml` content as data with optional placeholders:
 ```html
 <template x-router:fetch="/users/:id?">
-    <p>Specified user has an ID of {{ id || Nil }}.</p>
+    <p>Specified user has an ID of {: $params.id || 'Nil' :}.</p>
 </template>
 ```
 - Using the `innerHtml` content as data with typed placeholders:
 ```html
 <template x-router:fetch="/users/:id:integer">
-    <p>Specified user has an ID of {{ id }}.</p>
+    <p>Specified user has an ID of {: $params.id :}.</p>
 </template>
 ```
 - Using callback as data:
@@ -191,6 +191,10 @@ Available magic properties:
 - Specifying a different DOM element as mount point:
 ```html
 <template x-router:mount.evaluate="document.querySelector('#router-mount')"></template>
+```
+- Specifying a mount object:
+```html
+<template x-router:mount.evaluate="{ protocol: 'modal', target: document.querySelector('#router-mount') }"></template>
 ```
 
 ### `link`
