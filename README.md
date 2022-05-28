@@ -99,7 +99,7 @@ Available magic properties:
 
 `x-router:page` Registers a path as a new page.
 > **Notes:**
-> - Pages must be registered before they can requested/visited.
+> - Pages must be registered before they can be requested/visited.
 > - Registered page is removed when element with directive is removed from the DOM.
 
 **Examples:**
@@ -214,7 +214,7 @@ Available magic properties:
     <button type="submit">Search</button>
 </form>
 ```
-> When the form above is submitted, a fetch request is made with the URL: `/search?name=[Input Value]` to the router.
+> When the form above is submitted, a fetch request is made with the URL: `/search?query=[Input Value]` to the router.
 
 - Binding to an `a` element specifying to always reload data:
 ```html

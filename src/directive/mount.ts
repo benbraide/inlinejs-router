@@ -10,7 +10,8 @@ import {
     ResolveOptions,
     ForwardEvent,
     ISplitPath,
-    IsObject
+    IsObject,
+    TidyPath
 } from "@benbraide/inlinejs";
 
 import { RouterConceptName } from "../names";
@@ -101,21 +102,20 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
             });
         };
 
-        let checkpoint = 0;
+        let checkpoint = 0, prepend = (path: string) => ('/' + TidyPath(`${protocol}${options.plural ? 's' : ''}/${path.startsWith('/') ? path.substring(1) : path}`));
         let protocolHandler = ({ path }: IRouterProtocolHandlerParams) => {
             contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.entered`));
-            if (path === savedPath && !options.reload){//Skip
+
+            let fullPath = (options.prepend ? prepend(path) : path);
+            if (fullPath === savedPath && !options.reload){//Skip
                 contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.reload`));
                 return true;
             }
 
+            savedPath = fullPath;
             let myCheckpoint = ++checkpoint, dataHandler = (data: string, splitPath: ISplitPath) => ((myCheckpoint == checkpoint) && handleData({ data, path: splitPath, url: path }));
-            if (options.prepend){//Prepend protocol string
-                path = `/${protocol}${options.plural ? 's' : ''}/${path.startsWith('/') ? path.substring(1) : path}`;
-                return { dataHandler, path, shouldReload: options.reload };
-            }
             
-            return dataHandler;
+            return (options.prepend ? { dataHandler, path: fullPath, shouldReload: options.reload } : dataHandler);
         };
 
         if (protocol){
