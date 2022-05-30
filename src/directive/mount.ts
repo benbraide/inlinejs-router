@@ -106,16 +106,14 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
         let protocolHandler = ({ path }: IRouterProtocolHandlerParams) => {
             contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.entered`));
 
-            let fullPath = (options.prepend ? prepend(path) : path);
-            if (fullPath === savedPath && !options.reload){//Skip
+            if (path === savedPath && !options.reload){//Skip
                 contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.reload`));
                 return true;
             }
 
-            savedPath = fullPath;
             let myCheckpoint = ++checkpoint, dataHandler = (data: string, splitPath: ISplitPath) => ((myCheckpoint == checkpoint) && handleData({ data, path: splitPath, url: path }));
             
-            return (options.prepend ? { dataHandler, path: fullPath, shouldReload: options.reload } : dataHandler);
+            return (options.prepend ? { dataHandler, path: prepend(path), shouldReload: options.reload } : dataHandler);
         };
 
         if (protocol){

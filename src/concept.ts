@@ -148,10 +148,11 @@ export class RouterConcept implements IRouterConcept{
         if (!load){
             this.current_.path = path;
             this.current_.page = this.FindMatchingPage(split.base);
+            window.history.pushState(split, (this.current_.page?.title || 'Untitled'), path);
             this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(path), 'InlineJS.RouterConcept.Mount'));
         }
         else{
-            this.Load_(split, false);
+            this.Load_(split, true);
         }
     }
 
@@ -225,6 +226,11 @@ export class RouterConcept implements IRouterConcept{
         if (!protocolHandlerResponse){
             page = this.FindMatchingPage(path.base);
             if (!page){//Not found
+                this.current_.path = joined;
+                if (!samePath){
+                    this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(joined), 'InlineJS.RouterConcept.Load'));
+                    window.dispatchEvent(new CustomEvent(`${RouterConceptName}.path`, { detail: { path: { ...path } } }));
+                }
                 return window.dispatchEvent(new CustomEvent(`${RouterConceptName}.404`, { detail: { path: JoinPath(path) } }));
             }
 
