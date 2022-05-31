@@ -13,6 +13,7 @@ export declare class RouterConcept implements IRouterConcept {
     private dataHandlers_;
     private pathChangeHandlers_;
     private pages_;
+    private mountPath_;
     private current_;
     constructor(prefix_?: string, origin_?: string);
     GetOrigin(): string;

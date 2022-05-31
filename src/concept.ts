@@ -38,6 +38,8 @@ export class RouterConcept implements IRouterConcept{
     private pathChangeHandlers_ = new Array<RouterPathChangeHandlerType>();
     private pages_: Record<string, IRouterPage> = {};
 
+    private mountPath_: ISplitPath | null = null;
+
     private current_ = {
         path: '',
         page: <IRouterPage | null>null,
@@ -51,11 +53,7 @@ export class RouterConcept implements IRouterConcept{
             this.origin_ = this.origin_.replace(/\/+$/, '');
         }
 
-        this.onEvent_ = (e) => {
-            if (e.state && IsObject(e.state) && e.state.hasOwnProperty('base') && e.state.hasOwnProperty('query')){
-                this.Load_(e.state, false);
-            }
-        };
+        this.onEvent_ = e => JournalTry(() => this.Load_((e.state || this.mountPath_ || ''), false), 'InlineJS.RouterConcept.PopStateEvent');
     }
 
     public GetOrigin(){
@@ -148,12 +146,13 @@ export class RouterConcept implements IRouterConcept{
         if (!load){
             this.current_.path = path;
             this.current_.page = this.FindMatchingPage(split.base);
-            window.history.pushState(split, (this.current_.page?.title || 'Untitled'), path);
             this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(path), 'InlineJS.RouterConcept.Mount'));
         }
         else{
-            this.Load_(split, true);
+            this.Load_(split, false);
         }
+
+        this.mountPath_ = split;
     }
 
     public Goto(path: string | ISplitPath | IRouterPageName, shouldReload?: boolean, data?: any){
