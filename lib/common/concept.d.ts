@@ -5,7 +5,7 @@ export declare class RouterConcept implements IRouterConcept {
     private origin_;
     private markers_;
     private onEvent_;
-    private checkpoint_;
+    private checkpoints_;
     private active_;
     private middlewares_;
     private fetchers_;
@@ -48,6 +48,7 @@ export declare class RouterConcept implements IRouterConcept {
     GetCurrentPath(): string;
     GetActivePage(): IRouterPage | null;
     GetActivePageData(key?: string): any;
+    private GetProtocalString_;
     private FindProtocolHandler_;
     private Load_;
     private DoLoad_;

@@ -28,7 +28,7 @@ export class RouterConcept implements IRouterConcept{
     private markers_: IUniqueMarkers = GetDefaultUniqueMarkers();
     private onEvent_: (e: PopStateEvent) => void;
 
-    private checkpoint_ = 0;
+    private checkpoints_: Record<string, number> = { '': 0 };
     private active_ = false;
     
     private middlewares_: Record<string, IRouterMiddleware> = {};
@@ -95,10 +95,17 @@ export class RouterConcept implements IRouterConcept{
 
     public AddProtocolHandler(protocol: string | RegExp, handler: RouterProtocolHandlerType){
         this.protocolHandlers_.push({ protocol, handler });
+        this.checkpoints_[this.GetProtocalString_(protocol)] = 0;
     }
 
     public RemoveProtocolHandler(handler: RouterProtocolHandlerType){
-        this.protocolHandlers_ = this.protocolHandlers_.filter(info => (info.handler !== handler));
+        this.protocolHandlers_ = this.protocolHandlers_.filter((info) => {
+            if (info.handler === handler){
+                delete this.checkpoints_[this.GetProtocalString_(info.protocol)];
+                return false;
+            }
+            return true;
+        });
     }
 
     public AddDataHandler(handler: RouterDataHandlerType){
@@ -199,9 +206,13 @@ export class RouterConcept implements IRouterConcept{
         return this.current_.data;
     }
 
+    private GetProtocalString_(protocol: string | RegExp){
+        return ((typeof protocol === 'string') ? protocol : protocol.source);
+    }
+
     private FindProtocolHandler_(protocol: string){
         let info = this.protocolHandlers_.find(info => ((typeof info.protocol === 'string') ? (info.protocol === protocol) : info.protocol.test(protocol)));
-        return (info ? info.handler : null);
+        return (info || null);
     }
 
     private Load_(path: ISplitPath, pushHistory?: boolean, shouldReload?: boolean, data?: any){
@@ -210,7 +221,7 @@ export class RouterConcept implements IRouterConcept{
             path.base = path.base.substring(protocolMatch![1].length + 2);
         }
         
-        let joined = JoinPath(path), protocolHandlerResponse = (protocolHandler ? protocolHandler({ protocol: protocolMatch![1], path: joined }) : null);
+        let joined = JoinPath(path), protocolHandlerResponse = (protocolHandler ? protocolHandler.handler({ protocol: protocolMatch![1], path: joined }) : null);
         if (protocolHandlerResponse === true){
             return;//Protocol handled
         }
@@ -252,11 +263,13 @@ export class RouterConcept implements IRouterConcept{
         this.SetActiveState_(true);
         window.dispatchEvent(new CustomEvent(`${RouterConceptName}.entered`, { detail: { page: { ...page } } }));
 
-        let doLoad = () => this.DoLoad_(checkpoint, page!, path, joined, pushHistory, ( protocolHandlerResponse ? <ValidRouterProtocolHandlerResponseType>protocolHandlerResponse : undefined));
-        let checkpoint = ++this.checkpoint_, checkMiddlewares = async () => {
+        let protocolName = this.GetProtocalString_(protocolHandler?.protocol || '');
+        let doLoad = () => this.DoLoad_(checkpoint, page!, path, joined, protocolName, pushHistory, ( protocolHandlerResponse ? <ValidRouterProtocolHandlerResponseType>protocolHandlerResponse : undefined));
+
+        let checkpoint = ++this.checkpoints_[protocolName], checkMiddlewares = async () => {
             for (let middleware of ((typeof page!.middleware === 'string') ? [page!.middleware] : page!.middleware)!){
-                if (checkpoint != this.checkpoint_ || (this.middlewares_.hasOwnProperty(middleware) && !await this.middlewares_[middleware].Handle(joined))){
-                    if (checkpoint == this.checkpoint_){//Blocked
+                if (checkpoint !== this.checkpoints_[protocolName] || (this.middlewares_.hasOwnProperty(middleware) && !await this.middlewares_[middleware].Handle(joined))){
+                    if (checkpoint === this.checkpoints_[protocolName]){//Blocked
                         this.SetActiveState_(false);
                     }
                     return;//Invalid checkpoint OR blocked by middleware
@@ -274,8 +287,8 @@ export class RouterConcept implements IRouterConcept{
         }
     }
 
-    private DoLoad_(checkpoint: number, page: IRouterPage, path: ISplitPath, joined: string, pushHistory?: boolean, dataHandler?: ValidRouterProtocolHandlerResponseType){
-        if (checkpoint != this.checkpoint_){
+    private DoLoad_(checkpoint: number, page: IRouterPage, path: ISplitPath, joined: string, protocolName: string, pushHistory?: boolean, dataHandler?: ValidRouterProtocolHandlerResponseType){
+        if (checkpoint != this.checkpoints_[protocolName]){
             return;
         }
 
@@ -301,7 +314,7 @@ export class RouterConcept implements IRouterConcept{
 
         let url = (typeof dataHandler === 'function') ? joined : (dataHandler?.path || joined);
         let fetcherInfo = this.FindFetcher(url), handleData = (data: string) => {
-            if (checkpoint == this.checkpoint_){
+            if (checkpoint == this.checkpoints_[protocolName]){
                 if (!dataHandler){
                     this.dataHandlers_.slice(0).forEach(handle => JournalTry(() => handle({ data, path, url: joined })), `InlineJS.RouterConcept.HandleData`);
                     window.dispatchEvent(new CustomEvent(`${RouterConceptName}.load`));
