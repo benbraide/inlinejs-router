@@ -85,15 +85,15 @@ export const MountRouterDirectiveExtension = CreateDirectiveHandlerCallback('mou
             }
             
             savedPath = url;
-            Array.from(mountElement!.attributes).forEach(attr => mountElement!.removeAttribute(attr.name));
-
             InsertHtml({
                 element: mountElement!,
                 html: data,
                 component: componentId,
                 processDirectives: false,
                 afterInsert: () => {
+                    Array.from(mountElement!.attributes).forEach(attr => mountElement!.removeAttribute(attr.name));
                     BootstrapAndAttach(mountElement!);
+                    
                     (url === oldPath) && contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.reload`));
                     contextElement.dispatchEvent(new CustomEvent(`${RouterConceptName}.mount.load`));
                 },
