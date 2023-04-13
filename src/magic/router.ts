@@ -7,6 +7,7 @@ function CreateRouterProxy(){
     const getConcept = () => GetGlobal().GetConcept<IRouterConcept>(RouterConceptName);
     let methods = {
         setPrefix: (prefix: string) => getConcept()?.SetPrefix(prefix),
+        getPrefix: () => getConcept()?.GetPrefix(),
         addMiddleware: (middleware: IRouterMiddleware) => getConcept()?.AddMiddleware(middleware),
         removeMiddleware: (middleware: IRouterMiddleware | string) => getConcept()?.RemoveMiddleware(middleware),
         addFetcher: (fetcher: IRouterFetcher) => getConcept()?.AddFetcher(fetcher),
@@ -21,6 +22,8 @@ function CreateRouterProxy(){
         goto: (path: string | ISplitPath | IRouterPageName, shouldReload?: boolean, data?: any) => getConcept()?.Goto(path, shouldReload, data),
         reload: () => getConcept()?.Reload(),
         getCurrentPath: () => getConcept()?.GetCurrentPath(),
+        getCurrentQueryParams: () => getConcept()?.GetCurrentQueryParams(),
+        getCurrentQueryParam: (name: string) => getConcept()?.GetCurrentQueryParam(name),
         getActivePage: () => getConcept()?.GetActivePage(),
         getActivePageData: (key?: string) => getConcept()?.GetActivePageData(key),
     };

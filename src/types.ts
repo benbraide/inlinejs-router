@@ -11,6 +11,8 @@ export interface IRouterPageOptions{
     middleware?: string | Array<string>;
     cache?: boolean;
     reload?: boolean;
+    onActive?: (id: string) => void;
+    onInactive?: (id: string) => void;
 }
 
 export interface IRouterPage extends IRouterPageOptions{
@@ -109,6 +111,9 @@ export interface IRouterConcept{
     Reload(): void;
 
     GetCurrentPath(): string;
+    GetCurrentQueryParams(): Record<string, Array<string> | string>;
+    GetCurrentQueryParam(name: string): Array<string> | string | null;
+    
     GetActivePage(): IRouterPage | null;
     GetActivePageData(key?: string): any;
 }

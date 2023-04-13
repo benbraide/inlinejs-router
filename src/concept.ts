@@ -15,8 +15,23 @@ import {
     JournalTry
 } from "@benbraide/inlinejs";
 
+import {
+    IRouterPageName,
+    IRouterConcept,
+    IRouterMiddleware,
+    IRouterPage,
+    IRouterPageOptions,
+    IRouterFetcher,
+    RouterProtocolHandlerType,
+    IRouterFetcherOptimized,
+    IRouterFetcherSearchResponse,
+    RouterDataHandlerType,
+    ValidRouterProtocolHandlerResponseType,
+    IRouterProtocolModifyResponse,
+    RouterPathChangeHandlerType
+} from "./types";
+
 import { RouterConceptName, ResourceConceptName } from "./names";
-import { IRouterPageName, IRouterConcept, IRouterMiddleware, IRouterPage, IRouterPageOptions, IRouterFetcher, RouterProtocolHandlerType, RouterProtocolDataHandlerType, IRouterFetcherOptimized, IRouterFetcherPlaceholder, IRouterFetcherSearchResponse, RouterDataHandlerType, ValidRouterProtocolHandlerResponseType, IRouterProtocolModifyResponse, RouterPathChangeHandlerType } from "./types";
 import { MatchPath, ProcessPathPlaceholders } from "./utilities/path";
 
 interface IRouterProtocolHandlerInfo{
@@ -42,6 +57,7 @@ export class RouterConcept implements IRouterConcept{
 
     private current_ = {
         path: '',
+        params: <Record<string, Array<string> | string>>{},
         page: <IRouterPage | null>null,
         initialData: <any>null,
         data: <any>null,
@@ -95,13 +111,13 @@ export class RouterConcept implements IRouterConcept{
 
     public AddProtocolHandler(protocol: string | RegExp, handler: RouterProtocolHandlerType){
         this.protocolHandlers_.push({ protocol, handler });
-        this.checkpoints_[this.GetProtocalString_(protocol)] = 0;
+        this.checkpoints_[this.GetProtocolString_(protocol)] = 0;
     }
 
     public RemoveProtocolHandler(handler: RouterProtocolHandlerType){
         this.protocolHandlers_ = this.protocolHandlers_.filter((info) => {
             if (info.handler === handler){
-                delete this.checkpoints_[this.GetProtocalString_(info.protocol)];
+                delete this.checkpoints_[this.GetProtocolString_(info.protocol)];
                 return false;
             }
             return true;
@@ -153,7 +169,15 @@ export class RouterConcept implements IRouterConcept{
         if (!load){
             this.current_.path = path;
             this.current_.page = this.FindMatchingPage(split.base);
+
+            this.current_.params = {};
+            split.query && this.ResolveQueryParams_(split.query);
+            
             this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(path), 'InlineJS.RouterConcept.Mount'));
+            this.current_.page?.onActive && JournalTry(() => this.current_.page!.onActive!(this.current_.page?.id || ''), 'InlineJS.RouterConcept.Mount');
+
+            this.current_.page && window.dispatchEvent(new CustomEvent(`${RouterConceptName}.page`, { detail: { page: { ...this.current_.page } } }));
+            window.dispatchEvent(new CustomEvent(`${RouterConceptName}.path`, { detail: { path: { ...split } } }));
         }
         else{
             this.Load_(split, false);
@@ -195,6 +219,14 @@ export class RouterConcept implements IRouterConcept{
         return this.current_.path;
     }
 
+    public GetCurrentQueryParams(){
+        return this.current_.params;
+    }
+
+    public GetCurrentQueryParam(name: string){
+        return (this.current_.params.hasOwnProperty(name) ? this.current_.params[name] : null);
+    }
+
     public GetActivePage(): IRouterPage | null{
         return this.current_.page;
     }
@@ -206,7 +238,7 @@ export class RouterConcept implements IRouterConcept{
         return this.current_.data;
     }
 
-    private GetProtocalString_(protocol: string | RegExp){
+    private GetProtocolString_(protocol: string | RegExp){
         return ((typeof protocol === 'string') ? protocol : protocol.source);
     }
 
@@ -256,6 +288,8 @@ export class RouterConcept implements IRouterConcept{
             }
 
             if (!samePath){
+                this.current_.params = {};
+                path.query && this.ResolveQueryParams_(path.query);
                 this.pathChangeHandlers_.forEach(handler => JournalTry(() => handler(joined), 'InlineJS.RouterConcept.Load'));
             }
         }
@@ -263,7 +297,7 @@ export class RouterConcept implements IRouterConcept{
         this.SetActiveState_(true);
         window.dispatchEvent(new CustomEvent(`${RouterConceptName}.entered`, { detail: { page: { ...page } } }));
 
-        let protocolName = this.GetProtocalString_(protocolHandler?.protocol || '');
+        let protocolName = this.GetProtocolString_(protocolHandler?.protocol || '');
         let doLoad = () => this.DoLoad_(checkpoint, page!, path, joined, protocolName, pushHistory, ( protocolHandlerResponse ? <ValidRouterProtocolHandlerResponseType>protocolHandlerResponse : undefined));
 
         let checkpoint = ++this.checkpoints_[protocolName], checkMiddlewares = async () => {
@@ -298,6 +332,9 @@ export class RouterConcept implements IRouterConcept{
                 
                 this.current_.page = page;
                 this.current_.path = joined;
+
+                this.current_.page && this.current_.page.onInactive && JournalTry(() => this.current_.page!.onInactive!(page.id), 'InlineJS.RouterConcept.Load');
+                page.onActive && JournalTry(() => page.onActive!(this.current_.page?.id || ''), 'InlineJS.RouterConcept.Load');
                 
                 window.dispatchEvent(new CustomEvent(`${RouterConceptName}.page`, { detail: { page: { ...page } } }));
                 window.dispatchEvent(new CustomEvent(`${RouterConceptName}.path`, { detail: { path: { ...path } } }));
@@ -358,5 +395,23 @@ export class RouterConcept implements IRouterConcept{
             this.active_ = state;
             window.dispatchEvent(new CustomEvent(`${RouterConceptName}.active`, { detail: { state } }));
         }
+    }
+
+    private ResolveQueryParams_(q: string){
+        let query = new URLSearchParams(q);
+        query.forEach((value, key) => {
+            let isArray = key.endsWith('[]');
+
+            isArray && (key = key.substring(0, (key.length - 2)));
+            if (!this.current_.params.hasOwnProperty(key)){
+                this.current_.params[key] = (isArray ? [value] : value);
+            }
+            else if (Array.isArray(this.current_.params[key])){
+                (this.current_.params[key] as Array<string>).push(value);
+            }
+            else{
+                this.current_.params[key] = [(this.current_.params[key] as string), value];
+            }
+        });
     }
 }

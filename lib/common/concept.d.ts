@@ -39,6 +39,8 @@ export declare class RouterConcept implements IRouterConcept {
         middleware?: string | string[] | undefined;
         cache?: boolean | undefined;
         reload?: boolean | undefined;
+        onActive?: ((id: string) => void) | undefined;
+        onInactive?: ((id: string) => void) | undefined;
     } | null;
     FindPage(page: string | IRouterPageName): IRouterPage | null;
     FindMatchingPage(path: string): IRouterPage | null;
@@ -46,11 +48,14 @@ export declare class RouterConcept implements IRouterConcept {
     Goto(path: string | ISplitPath | IRouterPageName, shouldReload?: boolean, data?: any): void;
     Reload(): void;
     GetCurrentPath(): string;
+    GetCurrentQueryParams(): Record<string, string | string[]>;
+    GetCurrentQueryParam(name: string): string | string[] | null;
     GetActivePage(): IRouterPage | null;
     GetActivePageData(key?: string): any;
-    private GetProtocalString_;
+    private GetProtocolString_;
     private FindProtocolHandler_;
     private Load_;
     private DoLoad_;
     private SetActiveState_;
+    private ResolveQueryParams_;
 }
