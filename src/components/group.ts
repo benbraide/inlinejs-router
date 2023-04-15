@@ -90,9 +90,9 @@ export class RouterGroupElement extends CustomElement{
     private GetParentPageData_(){
         return <IRouterPage | null>((
             this.parentElement &&
-            this.parentElement.hasOwnProperty('GetRouterPageData') &&
+            'GetRouterPageData' in this.parentElement &&
             typeof this.parentElement['GetRouterPageData'] === 'function' &&
-            this.parentElement['GetRouterPageData']()
+            (this.parentElement['GetRouterPageData'] as any)()
         ) || null);
     }
 
