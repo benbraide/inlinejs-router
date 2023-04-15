@@ -1,6 +1,6 @@
 {
   "name": "@benbraide/inlinejs-router",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "Run javascript code by embedding them in your HTML using the element as context.",
   "main": "./lib/common/index.js",
   "module": "./lib/esm/index.js",
@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@benbraide/inlinejs": "^1.0.34",
-    "@benbraide/inlinejs-element": "^1.0.14",
+    "@benbraide/inlinejs-element": "^1.0.15",
     "webpack-cli": "^4.7.2"
   }
 }
