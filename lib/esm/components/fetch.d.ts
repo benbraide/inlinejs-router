@@ -1,13 +1,11 @@
 import { IElementScopeCreatedCallbackParams } from "@benbraide/inlinejs";
-import { CustomElement } from "@benbraide/inlinejs-element";
-export declare class RouterFetchElement extends CustomElement {
-    private componentId_;
-    private fetcher_;
+import { IRouterFetcher } from "../types";
+import { RouterPathElement } from "./path";
+export declare class RouterFetch extends RouterPathElement {
+    protected fetcher_: IRouterFetcher | null;
     constructor();
-    OnElementScopeCreated({ componentId, scope, ...rest }: IElementScopeCreatedCallbackParams): void;
-    protected AttributeChanged_(name: string): void;
-    private ResolvePath_;
-    private GetParentPageData_;
-    private InitFetcher_;
+    OnElementScopeCreated({ scope, ...rest }: IElementScopeCreatedCallbackParams): void;
+    protected PostPathUpdate_(shouldUpdate?: boolean): void;
+    protected UpdateFetcher_(): void;
 }
 export declare function RouterFetchElementCompact(): void;

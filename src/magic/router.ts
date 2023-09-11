@@ -6,6 +6,7 @@ import { RouterConceptName } from "../names";
 function CreateRouterProxy(){
     const getConcept = () => GetGlobal().GetConcept<IRouterConcept>(RouterConceptName);
     let methods = {
+        getConcept,
         setPrefix: (prefix: string) => getConcept()?.SetPrefix(prefix),
         getPrefix: () => getConcept()?.GetPrefix(),
         addMiddleware: (middleware: IRouterMiddleware) => getConcept()?.AddMiddleware(middleware),

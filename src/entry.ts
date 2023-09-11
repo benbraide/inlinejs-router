@@ -5,6 +5,7 @@ import { RouterConcept } from './concept';
 
 import { RouterFetchElementCompact } from './components/fetch';
 import { RouterGroupElementCompact } from './components/group';
+import { RouterMockElementCompact } from './components/mock';
 import { RouterMountElementCompact } from './components/mount';
 import { RouterPageElementCompact } from './components/page';
 import { RouterElementCompact } from './components/router';
@@ -23,6 +24,7 @@ export function InlineJSRouter(){
     
         RouterFetchElementCompact();
         RouterGroupElementCompact();
+        RouterMockElementCompact();
         RouterMountElementCompact();
         RouterPageElementCompact();
         RouterElementCompact();

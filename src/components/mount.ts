@@ -1,68 +1,60 @@
-import { BootstrapAndAttach, EvaluateLater, GetGlobal, IElementScopeCreatedCallbackParams, ISplitPath, InsertHtml, JournalError, RetrieveStoredObject, TidyPath } from "@benbraide/inlinejs";
-import { CustomElement } from "@benbraide/inlinejs-element";
+import { BootstrapAndAttach, EvaluateLater, GetGlobal, IElementScopeCreatedCallbackParams, ISplitPath, InsertHtml, JournalError, RetrieveStoredObject, SplitPath, TidyPath, ToString } from "@benbraide/inlinejs";
+import { Property, RegisterCustomElement } from "@benbraide/inlinejs-element";
 import { IRouterConcept, IRouterDataHandlerParams, IRouterProtocolHandlerParams } from "../types";
 import { RouterConceptName } from "../names";
+import { RouterElement } from "./base";
 
-export class RouterMountElement extends CustomElement{
+export class RouterMount extends RouterElement{
+    protected onload_ = '';
+    protected scroll_ = false;
+
+    @Property({ type: 'string', checkStoredObject: true })
+    public protocol: string | RegExp = '';
+
+    @Property({ type: 'string', checkStoredObject: true })
+    public target: string | HTMLElement = '';
+
+    @Property({ type: 'string' })
+    public format = '$path';
+
+    @Property({ type: 'string' })
+    public onentered = '';
+
+    @Property({ type: 'string' })
+    public UpdateOnloadProperty(value: string){
+        this.onload_ = value;
+    }
+
+    @Property({ type: 'string' })
+    public onreload = '';
+
+    @Property({ type: 'boolean' })
+    public UpdateScrollProperty(value: boolean){
+        this.scroll_ = value;
+    }
+
+    @Property({ type: 'boolean' })
+    public reload = false;
+
     public constructor(){
-        super({
-            protocol: '',
-            target: '',
-            prepend: '',
-            onentered: '',
-            onload: '',
-            onreload: '',
-            scroll: false,
-            reload: false,
-        });
+        super();
     }
 
     public OnElementScopeCreated({ componentId, scope, ...rest }: IElementScopeCreatedCallbackParams){
-        super.OnElementScopeCreated({ componentId, scope, ...rest });
-
-        scope.AddPostAttributesProcessCallback(() => {
+        this.HandleElementScopeCreated_({ componentId, scope, ...rest }, () => {
             let concept = GetGlobal().GetConcept<IRouterConcept>(RouterConceptName);
             if (!concept){
                 return JournalError(`${RouterConceptName} concept is not installed.`, GetGlobal().GetConfig().GetElementName('router-mount'), this);
             }
 
-            this.InitializeStateFromAttributes_();//Update state from attributes
-
-            let protocol = (RetrieveStoredObject({
-                componentId,
-                key: this.state_.protocol,
-                contextElement: this,
-            }) || '');
-            
-            let resolveTarget = () => {
-                let target = RetrieveStoredObject({
-                    componentId,
-                    key: this.state_.target,
-                    contextElement: this,
-                });
-                
-                let resolvedTarget: HTMLElement | null = null;
-                if (typeof target === 'string' && target.startsWith('new:')){
-                    target = target.substring(4);
-                    resolvedTarget = (['main', 'div', 'section', 'p', 'figure', 'span'].includes(target) ? document.createElement(target) : null);
-                }
-                else if (typeof target === 'string'){
-                    resolvedTarget = document.querySelector(target);
-                }
-                else if (target instanceof HTMLElement){
-                    resolvedTarget = target;
-                }
-
-                return resolvedTarget;
-            };
-
-            let target = resolveTarget();
+            let target = this.ResolveTarget_();
             if (!target){
                 return JournalError('Mount target is invalid.', GetGlobal().GetConfig().GetElementName('router-mount'), this);
             }
 
             let attributes: Record<string, string> = {};
-            Array.from(this.attributes).filter(attr => !this.state_.hasOwnProperty(attr.name)).forEach(attr => (attributes[attr.name] = attr.value));
+            Array.from(this.attributes).filter(attr => !(attr.name in this)).forEach(attr => (attributes[attr.name] = attr.value));
+            Object.keys(attributes).forEach(key => this.removeAttribute(key));
 
             let onUninit: (() => void) | null = null;
             if (this.parentElement && !target.parentElement){//Add to DOM
@@ -70,20 +62,18 @@ export class RouterMountElement extends CustomElement{
                 onUninit = () => target?.remove();
             }
 
-            let callLifecycleHook = (name: string) => {
+            let callLifecycleHook = (expression: string) => {
                 EvaluateLater({
                     componentId,
                     contextElement: this,
-                    expression: (this.state_[`on${name}`] || ''),
+                    expression,
                     disableFunctionCall: false,
                 })();
             };
             
             let savedPath: string | null = null, handleData = ({ data, url }: IRouterDataHandlerParams) => {
-                let oldPath = savedPath;
-                if (this.state_.scroll || url !== savedPath){
-                    window.scrollTo({ top: 0, left: 0 });
-                }
+                const oldPath = savedPath;
+                (this.scroll_ || url !== savedPath) && window.scrollTo({ top: 0, left: 0 });
                 
                 savedPath = url;
                 InsertHtml({
@@ -95,21 +85,21 @@ export class RouterMountElement extends CustomElement{
                     afterInsert: () => {
                         Object.entries(attributes).forEach(([key, value]) => target!.setAttribute(key, value));
                         BootstrapAndAttach(target!);
-                        (url === oldPath) && callLifecycleHook('reload');
-                        callLifecycleHook('load');
+                        (url === oldPath) && callLifecycleHook(this.onreload);
+                        callLifecycleHook(this.onload_);
                     },
                     afterTransitionCallback: () => {},
                     transitionScope: this,
                 });
             };
 
-            if (protocol && typeof protocol === 'string' || protocol instanceof RegExp){
-                let checkpoint = 0, prepend = (path: string) => ('/' + TidyPath(`${this.state_.prepend}/${path.startsWith('/') ? path.substring(1) : path}`));
+            if (this.protocol){
+                let checkpoint = 0;
                 let protocolHandler = ({ path }: IRouterProtocolHandlerParams) => {
                     callLifecycleHook('entered');
         
-                    if (path === savedPath && !this.state_.reload){//Skip
-                        callLifecycleHook('reload');
+                    if (path === savedPath && !this.reload){//Skip
+                        callLifecycleHook(this.onreload);
                         return true;
                     }
         
@@ -117,10 +107,10 @@ export class RouterMountElement extends CustomElement{
                         ((nestedCheckpoint == checkpoint) && handleData({ data, path: splitPath, url: path }));
                     };
                     
-                    return (this.state_.prepend ? { dataHandler, path: prepend(path), shouldReload: this.state_.reload } : dataHandler);
+                    return { dataHandler, path: this.ResolvePath_(path), shouldReload: this.reload };
                 };
 
-                concept.AddProtocolHandler(protocol, protocolHandler);
+                concept.AddProtocolHandler(this.protocol, protocolHandler);
                 scope.AddUninitCallback(() => {
                     GetGlobal().GetConcept<IRouterConcept>(RouterConceptName)?.RemoveProtocolHandler(protocolHandler);
                     onUninit && onUninit();
@@ -135,8 +125,42 @@ export class RouterMountElement extends CustomElement{
             }
         });
     }
+
+    protected ResolveTarget_(){
+        let resolvedTarget: HTMLElement | null = null;
+        if (typeof this.target === 'string' && this.target.startsWith('new:')){
+            const target = this.target.substring(4);
+            resolvedTarget = (['main', 'div', 'section', 'p', 'figure', 'span'].includes(target) ? document.createElement(target) : null);
+        }
+        else if (typeof this.target === 'string'){
+            resolvedTarget = document.querySelector(this.target);
+        }
+        else if (this.target instanceof HTMLElement){
+            resolvedTarget = this.target;
+        }
+
+        return resolvedTarget;
+    }
+
+    protected ResolvePath_(path: string){
+        const splitPath = SplitPath(path), context = {
+            path: this.TryRelativePath_(TidyPath(path)),
+            base: this.TryRelativePath_(splitPath.base),
+            query: splitPath.query,
+        };
+
+        return ToString(EvaluateLater({ componentId: this.componentId_, contextElement: this, expression: this.format })(undefined, [], context));
+    }
+
+    protected TryRelativePath_(path: string){
+        if (path.startsWith('http://') || path.startsWith('https://')){
+            return path;
+        }
+
+        return (path.startsWith('/') ? path : `/${path}`);
+    }
 }
 
 export function RouterMountElementCompact(){
-    customElements.define(GetGlobal().GetConfig().GetElementName('router-mount'), RouterMountElement);
+    RegisterCustomElement(RouterMount);
 }

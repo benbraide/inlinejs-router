@@ -1,8 +1,10 @@
 import { IElementScopeCreatedCallbackParams } from "@benbraide/inlinejs";
-import { CustomElement } from "@benbraide/inlinejs-element";
-export declare class RouterElement extends CustomElement {
+import { RouterElement } from "./base";
+export declare class Router extends RouterElement {
+    UpdatePrefixProperty(value: string): void;
+    mount: boolean;
+    load: boolean;
     constructor();
-    OnElementScopeCreated({ componentId, scope, ...rest }: IElementScopeCreatedCallbackParams): void;
-    protected AttributeChanged_(name: string): void;
+    OnElementScopeCreated(params: IElementScopeCreatedCallbackParams): void;
 }
 export declare function RouterElementCompact(): void;
